@@ -225,7 +225,7 @@ print("H2/H2/1 mean RT :")
 print(r_line)
 
 
-###Here ends the M/H2/1 code
+###Here ends the H2/H2/1 code
 
 ###Remember you can execute M/H2/1 through simple changes in the input of the H2/H2/1 code (i.e., lam1 = lam2)
 
