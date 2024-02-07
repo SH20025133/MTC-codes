@@ -1,0 +1,402 @@
+###The following portion contains code to evaluate RT of M/M/1 queues (enveloped between portions to rwad the lambda and mu values from our specific data files (.csv files))
+
+import pandas as pd
+import numpy as np
+
+inp_fn = "allfitw92-SH-iodepth16-clsize4-L2"
+df_iat = pd.read_csv(inp_fn+"_IAT.csv")
+df_iat1 = df_iat
+df_st = pd.read_csv(inp_fn+"_ST.csv")
+f_out = open(inp_fn+".csv","w")
+
+df_exp_iat = df_iat[df_iat.DistName == "exponential"]
+df_exp_st = df_st[df_st.DistName == "exponential"]
+
+#Exponential (M/M/1) code here
+i = 0
+r_line = ""
+while True:
+    df_exp_subtrace_iat = df_exp_iat[df_exp_iat.fname.str.contains("_"+str(i))]
+    df_exp_subtrace_st = df_exp_st[df_exp_st.fname.str.contains("_"+str(i))]
+    
+    if not df_exp_subtrace_st.shape[0]:
+        break
+    
+    lam = 1/df_exp_subtrace_iat.Params_1.values[0]
+    mu = 1/df_exp_subtrace_st.Params_1.values[0]
+
+    lam_1 = lam
+    mu_1 = mu
+
+    rho = lam_1/mu_1
+#     print(rho)
+
+    #print(1/lam_1, lam_2 , 1/mu_1, mu_2)
+#     print(i)
+    if rho < 1:
+        wait_time = rho/(mu_1 - lam_1)
+#         print("Avg wait time in M/M/1 is :", wait_time)
+#         print("Avg response time in M/M/1 is :", wait_time + 1/mu_1)
+        rt = wait_time + 1/mu_1
+    else:
+        print("Queue unstable")
+        rt = "Unstable"
+        
+    
+    r_line += str(rt)+", "
+    
+    i+=1
+print("Exponential M/M/1")
+print(r_line)
+
+###Here ends the M/M/1 code
+
+###The following portion contains code to evaluate RT of H2/H2/1 queues (enveloped between portions to read the lambda and mu values from our specific data files (.csv files))
+
+
+df_hyperexp_iat = df_iat[df_iat.DistName == "hyperexp"]
+df_hyperexp_st = df_st[df_st.DistName == "hyperexp"]
+#df_hyperexp_iat1 = df_hyperexp_iat
+#df_hyperexp_st1 = df_hyperexp_st
+df_hyperexp_iat[df_hyperexp_iat.fname.str.contains("_"+str(0))]
+#df_hyperexp_st[df_hyperexp_st.fname.str.contains("_"+str(0))]
+
+#H2/H2/1 MA code
+subtrace = 0
+r_line = ""
+while True:
+    df_hyperexp_subtrace_iat = df_hyperexp_iat[df_hyperexp_iat.fname.str.contains("_"+str(subtrace))]
+    df_hyperexp_subtrace_st = df_hyperexp_st[df_hyperexp_st.fname.str.contains("_"+str(subtrace))]
+
+    if not df_hyperexp_subtrace_st.shape[0]:
+        break
+    
+    #Declaring parameters
+    lam1 = 1/df_hyperexp_subtrace_iat.Params_1.values[0]
+    lam2 = 1/df_hyperexp_subtrace_iat.Params_2.values[0]
+    
+
+    mu1 = 1/df_hyperexp_subtrace_st.Params_1.values[0]
+    mu2 = 1/df_hyperexp_subtrace_st.Params_2.values[0]
+    
+    
+    p =  df_hyperexp_subtrace_iat.Params_3.values[0]
+    q =  df_hyperexp_subtrace_st.Params_3.values[0]
+
+#     print(subtrace,lam1,lam2,mu1,mu2,p,q)
+    
+    b1 = mu1*(1-q)
+    b2 = mu2*(1-q)
+    b3 = mu1*q
+    b4 = mu2*q
+    f1 = lam1*(1-p)
+    f2 = lam2*(1-p)
+    f3 = lam1*p
+    f4 = lam2*p
+
+    #Initializing forward, backward and initial arrays
+    L_0 = np.transpose(np.array([[-(lam1), 0],
+                   [0, -(lam2)]]))
+#     print("L :", L_0)
+    #F_0 = np.array([[lam1*p*q, lam1*(1-p)*q, lam1*p*(1-q), lam1*(1-p)*(1-q)],
+    #             [lam2*(1-p)*(1-q), lam2*p*(1-q), lam2*p*q, lam2*(1-p)*q]])
+    F_0 = np.array([[lam1*p*q, lam1*(1-p)*q, lam1*p*(1-q), lam1*(1-p)*(1-q)],
+                  [lam2*(p)*(q), lam2*(1-p)*(q), lam2*(p)*(1-q), lam2*(1-p)*(1-q)]])
+                   #[lam2*(1-p)*(1-q), lam2*(p)*(1-q), lam2*(1-p)*(q), lam2*(p)*(q)]])
+#     print("F_0 :",F_0)
+    B_0 = np.array([[mu1, 0],
+                   [mu1, 0],
+                   [0, mu2],
+                   [0, mu2]])
+#     print(B_0)
+    L = np.array([[-(lam1 + mu1), 0, 0, 0],
+                 [0, -(lam2 + mu1), 0, 0],
+                 [0, 0, -(lam1 + mu2), 0],
+                 [0, 0, 0, -(lam2 + mu2)]])
+    L1 = np.array([[-(lam2 + mu2), 0, 0, 0],
+                 [0, -(lam2 + mu2), 0, 0],
+                 [0, 0, -(lam1 + mu2), 0],
+                 [0, 0, 0, -(lam2 + mu2)]])
+#     print("L :",L)
+#     print(L1)
+    F = np.array([[f3, f1, 0, 0],
+                 [f4, f2, 0, 0],
+                 [0, 0, f3, f1],
+                 [0, 0, f4, f2]])
+#     print("F :",F)
+    B = np.array([[b3, 0, b1, 0],
+                 [0, b3, 0, b1],
+                 [b4, 0, b2, 0],
+                 [0, b4, 0, b2]])
+    B1 = np.array([[mu1*(q), 0, mu1*(1-q), 0],
+                 [0, mu1*(q), 0, mu1*(1-q)],
+                 [mu2*(q), 0, mu2*(1-q), 0],
+                 [0, mu2*(q), 0, mu2*(1-q)]])
+#     print("B :",B)
+#     print(B1)
+    R_0 = np.zeros((4, 4))
+#     print(R_0)
+
+    # Computing matrix R
+    R_prev = R_0
+    n = 0
+    flag = 0
+
+    while flag == 0 :
+        diff = []
+        if n > 0:
+            R_prev = R
+
+        R_2 = np.matmul(R_prev,R_prev)
+        R_mid = -(np.matmul(R_2,B) + F)
+        #print(R_mid)
+        R = np.matmul(R_mid, np.linalg.inv(L))
+
+        for (i,j) in zip(R_prev, R) :
+            for (k,l) in zip(i,j) :
+                diff.append(abs(k-l))
+
+        max = np.max(diff)
+        #print("Max is", max)
+        if (max < 10**-7) :
+
+            flag =1
+            break
+        n += 1
+#     print(R,n)
+
+    #Computing steady state distribution for state 0 and 1
+
+    #Creating (I - R)^-1 = psi
+    I = np.identity(4)
+    psi_full = np.linalg.inv(I - R)
+    psi = np.matmul(psi_full,np.ones((4,1), dtype=np.int64))
+    psi = np.vstack([np.ones((2,1), dtype=np.int64), psi])
+#     print(psi)
+
+    #Creating L + RB
+    RB = np.matmul(R, B)
+    LRB = np.add(L, RB)
+#     print(LRB)
+
+    #Creating stacked version of [F_0  L+RB]T = phi
+    phi = np.vstack([F_0, LRB])
+#     print(phi)
+
+    #Solving for pi_0 and pi_1
+    A = np.array([0, -(lam2), 0, 0, mu2, mu2])
+    A = A[..., None] 
+
+    A = np.hstack([psi,A, phi])
+    b = np.array([1, 0, 0, 0, 0, 0])
+#     print(A,b)
+    """
+    steady_pi = np.linalg.solve(np.transpose(A), b)
+    print(steady_pi)
+    """
+    steady_pi = np.matmul(b, np.linalg.inv(A)) 
+#     print(steady_pi)
+#     print(b.shape)
+
+    #Average arrival rate 
+
+    lam_avg = p/(lam1) + (1-p)/(lam2)
+    lam_avg
+    #[0.19573734 0.04410614 0.02985372 0.02985372 0.05228525 0.05228525]
+
+    #Computing avg response time W
+
+    pi_1 = [steady_pi[2], steady_pi[3], steady_pi[4], steady_pi[5]]
+#     print(pi_1)
+
+    squareI_R = np.matmul((I - R), (I - R))
+    W_num = np.matmul(np.linalg.inv(squareI_R), np.ones((4,1), dtype=int))
+#     print(W_num)
+    W_num = np.dot(pi_1, W_num)
+
+    W = W_num * lam_avg
+#     print("The mean response time is: ", W)
+    
+    subtrace+=1
+    
+    r_line += str(W[0])+", "
+    
+print("H2/H2/1 mean RT :")
+print(r_line)
+
+
+###Here ends the M/H2/1 code
+
+###Remember you can execute M/H2/1 through simple changes in the input of the H2/H2/1 code (i.e., lam1 = lam2)
+
+###The following portion contains code to evaluate RT of M/H2/1 queues (enveloped between portions to read the lambda and mu values from our specific data files (.csv files))
+
+df_exp_iat = df_iat[df_iat.DistName == "exponential"]
+df_hyperexp_iat = df_iat[df_iat.DistName == "hyperexp"]
+df_hyperexp_st = df_st[df_st.DistName == "hyperexp"]
+df_hyperexp_iat[df_hyperexp_iat.fname.str.contains("_"+str(0))]
+
+#M/H2/1 MA code
+subtrace1 = 0
+r_line = ""
+while True:
+    
+    #df_hyperexp_subtrace_iat = df_hyperexp_iat[df_hyperexp_iat.fname.str.contains("_"+str(subtrace))]
+    df_exp_subtrace_iat = df_exp_iat[df_exp_iat.fname.str.contains("_"+str(subtrace1))]
+    df_hyperexp_subtrace_st = df_hyperexp_st[df_hyperexp_st.fname.str.contains("_"+str(subtrace1))]
+
+    if not df_hyperexp_subtrace_st.shape[0]:
+        break
+    #print(df_exp_subtrace_iat.Params_1.values)
+    
+    #Declaring parameters
+    lam1 = 1/df_exp_subtrace_iat.Params_1.values[0]
+    lam2 = 1/df_exp_subtrace_iat.Params_1.values[0]
+
+    mu1 = 1/df_hyperexp_subtrace_st.Params_1.values[0]
+    mu2 = 1/df_hyperexp_subtrace_st.Params_2.values[0]
+    
+    #p =  df_hyperexp_subtrace_iat.Params_3.values[0]
+    q =  df_hyperexp_subtrace_st.Params_3.values[0]
+
+    #print(subtrace1,lam1,lam2,mu1,mu2,p,q)
+    
+    b1 = mu1*(1-q)
+    b2 = mu2*(1-q)
+    b3 = mu1*q
+    b4 = mu2*q
+    f1 = lam1*(1-p)
+    f2 = lam2*(1-p)
+    f3 = lam1*p
+    f4 = lam2*p
+
+    #Initializing forward, backward and initial arrays
+    L_0 = np.transpose(np.array([[-(lam1), 0],
+                   [0, -(lam2)]]))
+#     print("L :", L_0)
+    #F_0 = np.array([[lam1*p*q, lam1*(1-p)*q, lam1*p*(1-q), lam1*(1-p)*(1-q)],
+    #             [lam2*(1-p)*(1-q), lam2*p*(1-q), lam2*p*q, lam2*(1-p)*q]])
+    F_0 = np.array([[lam1*p*q, lam1*(1-p)*q, lam1*p*(1-q), lam1*(1-p)*(1-q)],
+                  [lam2*(p)*(q), lam2*(1-p)*(q), lam2*(p)*(1-q), lam2*(1-p)*(1-q)]])
+                   #[lam2*(1-p)*(1-q), lam2*(p)*(1-q), lam2*(1-p)*(q), lam2*(p)*(q)]])
+#     print("F_0 :",F_0)
+    B_0 = np.array([[mu1, 0],
+                   [mu1, 0],
+                   [0, mu2],
+                   [0, mu2]])
+#     print(B_0)
+    L = np.array([[-(lam1 + mu1), 0, 0, 0],
+                 [0, -(lam2 + mu1), 0, 0],
+                 [0, 0, -(lam1 + mu2), 0],
+                 [0, 0, 0, -(lam2 + mu2)]])
+    L1 = np.array([[-(lam2 + mu2), 0, 0, 0],
+                 [0, -(lam2 + mu2), 0, 0],
+                 [0, 0, -(lam1 + mu2), 0],
+                 [0, 0, 0, -(lam2 + mu2)]])
+#     print("L :",L)
+#     print(L1)
+    F = np.array([[f3, f1, 0, 0],
+                 [f4, f2, 0, 0],
+                 [0, 0, f3, f1],
+                 [0, 0, f4, f2]])
+#     print("F :",F)
+    B = np.array([[b3, 0, b1, 0],
+                 [0, b3, 0, b1],
+                 [b4, 0, b2, 0],
+                 [0, b4, 0, b2]])
+    B1 = np.array([[mu1*(q), 0, mu1*(1-q), 0],
+                 [0, mu1*(q), 0, mu1*(1-q)],
+                 [mu2*(q), 0, mu2*(1-q), 0],
+                 [0, mu2*(q), 0, mu2*(1-q)]])
+#     print("B :",B)
+#     print(B1)
+    R_0 = np.zeros((4, 4))
+#     print(R_0)
+
+    # Computing matrix R
+    R_prev = R_0
+    n = 0
+    flag = 0
+
+    while flag == 0 :
+        diff = []
+        if n > 0:
+            R_prev = R
+
+        R_2 = np.matmul(R_prev,R_prev)
+        R_mid = -(np.matmul(R_2,B) + F)
+        #print(R_mid)
+        R = np.matmul(R_mid, np.linalg.inv(L))
+
+        for (i,j) in zip(R_prev, R) :
+            for (k,l) in zip(i,j) :
+                diff.append(abs(k-l))
+
+        max = np.max(diff)
+        #print("Max is", max)
+        if (max < 10**-7) :
+
+            flag =1
+            break
+        n += 1
+#     print(R,n)
+
+    #Computing steady state distribution for state 0 and 1
+
+    #Creating (I - R)^-1 = psi
+    I = np.identity(4)
+    psi_full = np.linalg.inv(I - R)
+    psi = np.matmul(psi_full,np.ones((4,1), dtype=np.int64))
+    psi = np.vstack([np.ones((2,1), dtype=np.int64), psi])
+#     print(psi)
+
+    #Creating L + RB
+    RB = np.matmul(R, B)
+    LRB = np.add(L, RB)
+#     print(LRB)
+
+    #Creating stacked version of [F_0  L+RB]T = phi
+    phi = np.vstack([F_0, LRB])
+#     print(phi)
+
+    #Solving for pi_0 and pi_1
+    A = np.array([0, -(lam2), 0, 0, mu2, mu2])
+    A = A[..., None] 
+
+    A = np.hstack([psi,A, phi])
+    b = np.array([1, 0, 0, 0, 0, 0])
+#     print(A,b)
+    """
+    steady_pi = np.linalg.solve(np.transpose(A), b)
+    print(steady_pi)
+    """
+    steady_pi = np.matmul(b, np.linalg.inv(A)) 
+#     print(steady_pi)
+#     print(b.shape)
+
+    #Average arrival rate 
+
+    lam_avg = p/(lam1) + (1-p)/(lam2)
+    lam_avg
+    #[0.19573734 0.04410614 0.02985372 0.02985372 0.05228525 0.05228525]
+
+    #Computing avg response time W
+
+    pi_1 = [steady_pi[2], steady_pi[3], steady_pi[4], steady_pi[5]]
+#     print(pi_1)
+
+    squareI_R = np.matmul((I - R), (I - R))
+    W_num = np.matmul(np.linalg.inv(squareI_R), np.ones((4,1), dtype=int))
+#     print(W_num)
+    W_num = np.dot(pi_1, W_num)
+
+    W = W_num * lam_avg
+    #print("The mean response time is: ", W)
+    
+    subtrace1 +=1
+    
+    r_line += str(W[0])+", "
+    
+print("M/H2/1 mean RT :")
+print(r_line)
+
