@@ -1,5 +1,6 @@
 # MTC-codes
 Contains data and codes for different queueing models used on cloudphysics traces
+
 Steps
 
 We take the entire trace and based on src values (and the ways discussed on slide)
@@ -20,6 +21,8 @@ Now execute csv_preprocessing.py to extract all Q values from the 4 files (somet
 
 With these you are ready to do IAT fits for the 2 classes across 2 devices.
 
+/******/
+
 A bit of a backtrack (to verify if the read/write ratio is consistent within a subtrace.) 
 
 To do this (say for L1) :
@@ -27,3 +30,13 @@ To do this (say for L1) :
 -You shall need to count the number of reads and writes simultaneously in each minute in say two dataframes (execute plot_readratio.ipynb)
 -calculate the ratio
 -and plot if necessary
+
+/******/
+
+To generate ST traces for L1 (read & write) run the following scripts 
+-Partitiontrace_ST.py
+-csv_preprocessingST.py
+
+Check for the files with "_out.csv" within Partition_traces_ST_L1.
+Similarly execute for L2 read&write ST. With these you are ready to do ST fits for the 2 classes across 2 devices.
+
